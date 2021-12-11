@@ -49,8 +49,8 @@ public class WeatherBatchService {
 
     public void run() throws IOException, InterruptedException {
         var weatherJson = fetchYokohamaWeather();
-        var aaa = extractYokohamaData(weatherJson);
-        sendToTypetalk(aaa);
+        var forecast = extractYokohamaData(weatherJson);
+        sendToTypetalk(forecast);
     }
 
     private JsonNode fetchYokohamaWeather() throws IOException, InterruptedException {
