@@ -1,21 +1,20 @@
 package com.myorg
 
-import io.circe.syntax._
 import io.circe._
+import sttp.client3._
+import sttp.client3.httpclient.HttpClientSyncBackend
+import sttp.model.MediaType
 
-import java.net.URI
-import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 
 case class Forecast(
   publishingOffice: String,
   reportDatetime: OffsetDateTime,
   todayForecast: DailyForecast,
   tomorrowForecast: DailyForecast,
-  dayAfterTomorrowForecast: DailyForecast,
 )
 
 case class DailyForecast(timeDefine: OffsetDateTime, content: String)
@@ -33,21 +32,26 @@ class WeatherBatchService(typetalkSettings: TypetalkSettings) {
 
   import WeatherBatchService._
 
-  private val client = HttpClient.newHttpClient
+  private[this] val backend = HttpClientSyncBackend()
 
   def run(): Either[Throwable, Unit] = {
     for {
       weatherJson <- fetchYokohamaWeather
       forecast    <- extractYokohamaData(weatherJson)
-    } yield sendToTypetalk(forecast)
+      _           <- sendToTypetalk(forecast)
+    } yield ()
   }
 
   private def fetchYokohamaWeather: Either[Throwable, Json] = {
-    val request = HttpRequest.newBuilder
-      .uri(URI.create(WEATHER_URL + "/" + YOKOHAMA_OFFICE_CODE + ".json"))
-      .build
-    val response = this.client.send(request, HttpResponse.BodyHandlers.ofString)
-    parser.parse(response.body)
+    val request = basicRequest
+      .get(uri"${WEATHER_URL}/${YOKOHAMA_OFFICE_CODE}.json")
+
+    val response = request.send(backend)
+
+    response.body.fold(
+      err => Left(new IllegalStateException(err)),
+      parser.parse,
+    )
   }
 
   private def extractYokohamaData(weatherJson: Json): Either[Throwable, Forecast] = {
@@ -65,41 +69,35 @@ class WeatherBatchService(typetalkSettings: TypetalkSettings) {
     }
 
     for {
-      publishingOffice         <- details.downField("publishingOffice").as[String]
-      reportDatetime           <- details.downField("reportDatetime").as[String].map(OffsetDateTime.parse)
-      todayForecast            <- getForecast(0)
-      tomorrowForecast         <- getForecast(1)
-      dayAfterTomorrowForecast <- getForecast(2)
-    } yield Forecast(
-      publishingOffice,
-      reportDatetime,
-      todayForecast,
-      tomorrowForecast,
-      dayAfterTomorrowForecast,
-    )
+      publishingOffice     <- details.get[String]("publishingOffice")
+      reportDatetimeString <- details.get[String]("reportDatetime")
+      reportDatetime       <- Try(OffsetDateTime.parse(reportDatetimeString)).toEither
+      todayForecast        <- getForecast(0)
+      tomorrowForecast     <- getForecast(1)
+    } yield Forecast(publishingOffice, reportDatetime, todayForecast, tomorrowForecast)
   }
 
-  private def sendToTypetalk(forecast: Forecast): Unit = {
-    val todayForecast            = forecast.todayForecast
-    val tomorrowForecast         = forecast.tomorrowForecast
-    val dayAfterTomorrowForecast = forecast.dayAfterTomorrowForecast
+  private def sendToTypetalk(forecast: Forecast): Either[Throwable, String] = {
+    val todayForecast    = forecast.todayForecast
+    val tomorrowForecast = forecast.tomorrowForecast
 
     val message =
       s"""横浜の天気
          |${dateTimeFormat.format(forecast.reportDatetime)} ${forecast.publishingOffice} 発表 (気象庁より)
-         |今日　 ${dateFormat.format(todayForecast.timeDefine)} ：  ${todayForecast.content}
-         |明日　 ${dateFormat.format(tomorrowForecast.timeDefine)} ：  ${tomorrowForecast.content}
-         |明後日 ${dateFormat.format(dayAfterTomorrowForecast.timeDefine)} ：  ${dayAfterTomorrowForecast.content}
+         |今日 ${dateFormat.format(todayForecast.timeDefine)} ：  ${todayForecast.content}
+         |明日 ${dateFormat.format(tomorrowForecast.timeDefine)} ：  ${tomorrowForecast.content}
       """.stripMargin
-    val json = Map("message" -> message).asJson.noSpaces
-    val request = HttpRequest.newBuilder
-      .uri(URI.create(TYPETALK_TOPIC_URL))
-      .header("Content-Type", "application/json")
+    val json = Json.obj("message" -> Json.fromString(message)).noSpaces
+    val request = basicRequest
+      .post(uri"$TYPETALK_TOPIC_URL")
       .header("X-TYPETALK-TOKEN", typetalkSettings.token)
-      .POST(HttpRequest.BodyPublishers.ofString(json))
-      .build
-    this.client.send(request, HttpResponse.BodyHandlers.ofString)
+      .contentType(MediaType.ApplicationJson)
+      .body(json)
+    val response = request.send(backend)
 
-    ()
+    response.body.fold(
+      err => Left(new IllegalStateException(err)),
+      Right(_),
+    )
   }
 }

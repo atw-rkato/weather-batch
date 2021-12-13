@@ -6,24 +6,31 @@ import io.circe.generic.auto._
 import wvlet.airframe.newDesign
 import wvlet.log.LogSupport
 
-object WeatherBatchMain extends App with LogSupport {
-  val config = ConfigFactory.load()
+object WeatherBatchMain extends LogSupport {
 
-  val typetalkSettings = config.as[TypetalkSettings]("typetalk") match {
-    case Left(e) =>
-      error(e.getMessage)
-      sys.exit(1)
-    case Right(value) => value
-  }
+  def main(args: Array[String]): Unit = {
+    info("app start.")
+    info("configuration read start.")
+    val config = ConfigFactory.load()
 
-  val design = newDesign
-    .bind[TypetalkSettings].toInstance(typetalkSettings)
-    .bind[WeatherBatchService].toSingleton
-
-  design.build[WeatherBatchService] { service =>
-    service.run() match {
-      case Left(e)  => error(e.getMessage)
-      case Right(_) =>
+    val typetalkSettings = config.as[TypetalkSettings]("typetalk") match {
+      case Left(e)      => throw e
+      case Right(value) => value
     }
+
+    info("configuration read end.")
+
+    val design = newDesign
+      .bind[TypetalkSettings].toInstance(typetalkSettings)
+      .bind[WeatherBatchService].toSingleton
+
+    design.build[WeatherBatchService] { service =>
+      info("task start.")
+      service.run() match {
+        case Left(e)  => throw e
+        case Right(_) => info("task end.")
+      }
+    }
+    info("app end.")
   }
 }

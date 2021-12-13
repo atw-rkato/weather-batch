@@ -1,11 +1,11 @@
 ## Stage 1 : build with maven builder image with native capabilities
-FROM openjdk:17-jdk-slim AS build
+FROM eclipse-temurin:17-jdk-centos7 AS buildd
 ARG RUN_JAVA_VERSION=1.3.8
 COPY mvnw /code/mvnw
 COPY .mvn /code/.mvn
 COPY pom.xml /code/
 WORKDIR /code
-RUN apt-get update && apt-get install -y curl \
+RUN yum update -y && yum install -y curl \
     && curl https://repo1.maven.org/maven2/io/fabric8/run-java-sh/${RUN_JAVA_VERSION}/run-java-sh-${RUN_JAVA_VERSION}-sh.sh -o /code/run-java.sh \
     && chmod 540 /code/run-java.sh
 RUN ./mvnw -B org.apache.maven.plugins:maven-dependency-plugin:3.2.0:go-offline clean package install test

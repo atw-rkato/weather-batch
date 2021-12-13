@@ -1,0 +1,32 @@
+FROM eclipse-temurin:17-jdk-centos7 AS build
+WORKDIR /code
+RUN  curl -Ls https://raw.githubusercontent.com/dwijnand/sbt-extras/master/sbt > /bin/sbt  \
+    && chmod 0755 /bin/sbt
+COPY src /code/src
+COPY build.sbt /code/
+COPY .scalafmt.conf /code/
+COPY project/build.properties /code/project/
+COPY project/*.sbt /code/project/
+RUN /bin/sbt clean scalafmtCheck stage
+
+
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.5
+ARG JAVA_PACKAGE=java-17-openjdk-headless
+ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en'
+# Install java and the run-java script
+# Also set up permissions for user `1001`
+RUN microdnf install ${JAVA_PACKAGE} \
+    && microdnf update \
+    && microdnf clean all \
+    && mkdir /deployments \
+    && chown 1001 /deployments \
+    && chmod "g+rwX" /deployments \
+    && chown 1001:root /deployments \
+    && echo "securerandom.source=file:/dev/urandom" >> /etc/alternatives/jre/lib/security/java.security
+
+COPY --from=build --chown=1001 /code/target/universal/stage/bin/weather-batch-scala /deployments/bin/
+COPY --from=build --chown=1001 /code/target/universal/stage/lib/ /deployments/lib/
+
+USER 1001
+
+ENTRYPOINT [ "/deployments/bin/weather-batch-scala" ]

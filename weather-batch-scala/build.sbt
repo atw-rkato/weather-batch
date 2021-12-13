@@ -1,9 +1,7 @@
 import org.scalafmt.sbt.ScalafmtPlugin.autoImport.scalafmtConfig
 
-enablePlugins(PackPlugin)
-packMain := Map("run-weather-batch-scala" -> "com.myorg.WeatherBatchMain")
-
 lazy val root = (project in file("."))
+  .enablePlugins(JavaAppPackaging)
   .settings(
     organization := "com.myorg",
     name := "weather-batch-scala",
@@ -27,11 +25,15 @@ lazy val root = (project in file("."))
 
 lazy val circeVersion    = "0.14.1"
 lazy val airFrameVersion = "21.12.0"
+lazy val sttpVersion     = "3.3.18"
+lazy val macwireVersion  = "2.5.0"
 lazy val dependencies = Seq(
-  "org.wvlet.airframe" %% "airframe"      % airFrameVersion,
-  "org.wvlet.airframe" %% "airframe-log"  % airFrameVersion,
-  "io.circe"           %% "circe-core"    % circeVersion,
-  "io.circe"           %% "circe-generic" % circeVersion,
-  "io.circe"           %% "circe-parser"  % circeVersion,
-  "io.circe"           %% "circe-config"  % "0.8.0",
+  "org.wvlet.airframe"            %% "airframe"           % airFrameVersion,
+  "org.wvlet.airframe"            %% "airframe-log"       % airFrameVersion,
+  "io.circe"                      %% "circe-core"         % circeVersion,
+  "io.circe"                      %% "circe-generic"      % circeVersion,
+  "io.circe"                      %% "circe-parser"       % circeVersion,
+  "io.circe"                      %% "circe-config"       % "0.8.0",
+  "com.softwaremill.sttp.client3" %% "core"               % sttpVersion,
+  "com.softwaremill.sttp.client3" %% "httpclient-backend" % sttpVersion,
 )

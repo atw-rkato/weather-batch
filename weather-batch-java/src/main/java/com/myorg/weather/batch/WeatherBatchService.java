@@ -22,8 +22,7 @@ public class WeatherBatchService {
       String publishingOffice,
       OffsetDateTime reportDatetime,
       DailyForecast todayForecast,
-      DailyForecast tomorrowForecast,
-      DailyForecast dayAfterTomorrowForecast
+      DailyForecast tomorrowForecast
     ) {
     }
 
@@ -78,29 +77,22 @@ public class WeatherBatchService {
           OffsetDateTime.parse(timeDefines.get(1).asText()),
           weathers.get(1).asText()
         );
-        var dayAfterTomorrowForecast = new DailyForecast(
-          OffsetDateTime.parse(timeDefines.get(2).asText()),
-          weathers.get(2).asText()
-        );
-        return new Forecast(publishingOffice, reportDatetime, todayForecast, tomorrowForecast, dayAfterTomorrowForecast);
+        return new Forecast(publishingOffice, reportDatetime, todayForecast, tomorrowForecast);
     }
 
     private void sendToTypetalk(Forecast forecast) throws IOException, InterruptedException {
         var todayForecast = forecast.todayForecast();
         var tomorrowForecast = forecast.tomorrowForecast();
-        var dayAfterTomorrowForecast = forecast.dayAfterTomorrowForecast();
         var message = """
           横浜の天気
           %s %s 発表 (気象庁より)
           今日　 %s ：  %s
           明日　 %s ：  %s
-          明後日 %s ：  %s
           """
           .formatted(
             dateTimeFormat.format(forecast.reportDatetime()), forecast.publishingOffice(),
             dateFormat.format(todayForecast.timeDefine()), todayForecast.content(),
-            dateFormat.format(tomorrowForecast.timeDefine()), tomorrowForecast.content(),
-            dateFormat.format(dayAfterTomorrowForecast.timeDefine()), dayAfterTomorrowForecast.content()
+            dateFormat.format(tomorrowForecast.timeDefine()), tomorrowForecast.content()
           );
 
         var json = mapper.writeValueAsString(Map.of("message", message));
