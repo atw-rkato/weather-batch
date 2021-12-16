@@ -2,7 +2,7 @@
 FROM quay.io/quarkus/ubi-quarkus-mandrel:21.3.0.0-Final-java17 AS build
 COPY --chown=quarkus:quarkus mvnw /code/mvnw
 COPY --chown=quarkus:quarkus .mvn /code/.mvn
-COPY --chown=quarkus:quarkus pom.xml /code/
+COPY --chown=quarkus:quarkus pom.xml /code/pom.xml
 USER quarkus
 WORKDIR /code
 RUN ./mvnw -B org.apache.maven.plugins:maven-dependency-plugin:3.2.0:go-offline clean package install test
@@ -20,7 +20,6 @@ RUN chmod 775 /work /work/application \
   && chmod -R "g+rwX" /work \
   && chown -R 1001:root /work
 
-EXPOSE 8080
 USER 1001
 
 CMD ["./application"]

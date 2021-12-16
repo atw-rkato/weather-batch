@@ -1,12 +1,12 @@
 FROM eclipse-temurin:17-jdk-centos7 AS build
 WORKDIR /code
+COPY src /code/src
+COPY build.sbt /code/build.sbt
+COPY .scalafmt.conf /code/.scalafmt.conf
+COPY project/build.properties /code/project/build.properties
+COPY project/*.sbt /code/project/
 RUN  curl -Ls https://raw.githubusercontent.com/dwijnand/sbt-extras/master/sbt > /bin/sbt  \
     && chmod 0755 /bin/sbt
-COPY src /code/src
-COPY build.sbt /code/
-COPY .scalafmt.conf /code/
-COPY project/build.properties /code/project/
-COPY project/*.sbt /code/project/
 RUN /bin/sbt clean scalafmtCheck stage
 
 
@@ -24,9 +24,9 @@ RUN microdnf install ${JAVA_PACKAGE} \
     && chown 1001:root /deployments \
     && echo "securerandom.source=file:/dev/urandom" >> /etc/alternatives/jre/lib/security/java.security
 
-COPY --from=build --chown=1001 /code/target/universal/stage/bin/weather-batch-scala /deployments/bin/
+COPY --from=build --chown=1001 /code/target/universal/stage/bin/weather-batch-scala /deployments/bin/application
 COPY --from=build --chown=1001 /code/target/universal/stage/lib/ /deployments/lib/
 
 USER 1001
 
-ENTRYPOINT [ "/deployments/bin/weather-batch-scala" ]
+ENTRYPOINT [ "/deployments/bin/application" ]

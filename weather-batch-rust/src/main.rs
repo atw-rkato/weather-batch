@@ -12,7 +12,9 @@ struct Env {
 #[tokio::main]
 async fn main() -> Result<(), AppError> {
     env_logger::init();
+    log::info!("app start.");
     let env = envy::from_env::<Env>()?;
     service::run(&env.typetalk_token).await?;
+    log::info!("app end.");
     Ok(())
 }
