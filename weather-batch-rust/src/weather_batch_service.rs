@@ -23,6 +23,7 @@ struct DailyForecast {
 
 pub(crate) struct WeatherBatchService<'a> {
     typetalk_token: &'a str,
+    client: reqwest::Client,
 }
 
 impl WeatherBatchService<'_> {
@@ -31,10 +32,10 @@ impl WeatherBatchService<'_> {
     const TYPETALK_TOPIC_URL: &'static str = "https://typetalk.com/api/v1/topics/259767";
 
     pub fn new(typetalk_token: &str) -> WeatherBatchService {
-        WeatherBatchService { typetalk_token }
+        WeatherBatchService { typetalk_token, client: reqwest::Client::new() }
     }
 
-    pub(crate) async fn run(&self) -> Result<(), AppError> {
+    pub(crate) async fn run(self) -> Result<(), AppError> {
         let weather_json = self.fetch_yokohama_weather().await?;
         let forecast = self.extract_yokohama_data(&weather_json)?;
         self.send_to_typetalk(&forecast).await?;
@@ -42,7 +43,10 @@ impl WeatherBatchService<'_> {
     }
 
     async fn fetch_yokohama_weather(&self) -> reqwest::Result<Value> {
-        let resp = reqwest::get(format!("{}/{}.json", Self::WEATHER_URL, Self::YOKOHAMA_OFFICE_CODE)).await?;
+        let resp = self.client
+            .get(format!("{}/{}.json", Self::WEATHER_URL, Self::YOKOHAMA_OFFICE_CODE))
+            .send()
+            .await?;
         resp.json::<Value>().await
     }
 
@@ -94,8 +98,7 @@ impl WeatherBatchService<'_> {
         );
 
         let json = json!({ "message": message });
-        let client = reqwest::Client::new();
-        client.post(Self::TYPETALK_TOPIC_URL)
+        self.client.post(Self::TYPETALK_TOPIC_URL)
             .header("X-TYPETALK-TOKEN", self.typetalk_token)
             .json(&json)
             .send()

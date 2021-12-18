@@ -86,8 +86,8 @@ public class WeatherBatchService {
         var message = """
           横浜の天気
           %s %s 発表 (気象庁より)
-          今日　 %s ：  %s
-          明日　 %s ：  %s
+          今日 %s ：  %s
+          明日 %s ：  %s
           """
           .formatted(
             dateTimeFormat.format(forecast.reportDatetime()), forecast.publishingOffice(),
