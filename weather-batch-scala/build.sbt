@@ -18,7 +18,7 @@ lazy val root = (project in file("."))
       "-Ywarn-numeric-widen",
       "-Ywarn-value-discard",
     ),
-    javacOptions ++= Seq("-source", "11", "-target", "11", "-encoding", "UTF-8"),
+    javacOptions ++= Seq("-source", "17", "-target", "17", "-encoding", "UTF-8"),
     scalafmtConfig := file(".scalafmt.conf"),
     libraryDependencies ++= dependencies,
   )

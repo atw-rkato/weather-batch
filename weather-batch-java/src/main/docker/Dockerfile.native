@@ -5,7 +5,7 @@ COPY --chown=quarkus:quarkus .mvn /code/.mvn
 COPY --chown=quarkus:quarkus pom.xml /code/pom.xml
 USER quarkus
 WORKDIR /code
-RUN ./mvnw -B org.apache.maven.plugins:maven-dependency-plugin:3.2.0:go-offline clean package install test
+RUN ./mvnw -B org.apache.maven.plugins:maven-dependency-plugin:3.2.0:go-offline clean package test
 COPY src /code/src
 RUN ./mvnw clean package -Pnative
 

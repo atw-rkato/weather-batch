@@ -86,7 +86,7 @@ class WeatherBatchService(typetalkSettings: TypetalkSettings) {
          |${dateTimeFormat.format(forecast.reportDatetime)} ${forecast.publishingOffice} 発表 (気象庁より)
          |今日 ${dateFormat.format(todayForecast.timeDefine)} ：  ${todayForecast.content}
          |明日 ${dateFormat.format(tomorrowForecast.timeDefine)} ：  ${tomorrowForecast.content}
-      """.stripMargin
+         |""".stripMargin
     val json = Json.obj("message" -> Json.fromString(message)).noSpaces
     val request = basicRequest
       .post(uri"$TYPETALK_TOPIC_URL")
