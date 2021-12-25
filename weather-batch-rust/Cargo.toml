@@ -26,3 +26,5 @@ chrono = "0.4"
 chrono_locale = "0.1"
 # https://github.com/dtolnay/indoc
 indoc = "1.0"
+# https://github.com/dtolnay/anyhow
+anyhow = { version = "1.0", features = ["backtrace"] }

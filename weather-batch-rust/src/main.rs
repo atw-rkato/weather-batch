@@ -1,10 +1,9 @@
+use anyhow::Result;
 use serde::Deserialize;
 
 use weather_batch_service::WeatherBatchService;
 
 mod weather_batch_service;
-
-type AppError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
 #[derive(Deserialize, Debug)]
 struct Env {
@@ -12,18 +11,24 @@ struct Env {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), AppError> {
+async fn main() {
     init_logger();
-
     log::info!("app start.");
+
+    match try_main().await {
+        Ok(_) => log::info!("app end."),
+        Err(e) => {
+            log::error!("{:?}", e);
+            std::process::exit(1);
+        }
+    }
+}
+
+async fn try_main() -> Result<()> {
     let env = envy::from_env::<Env>()?;
     let service = WeatherBatchService::new(&env.typetalk_token);
-    match service.run().await {
-        Ok(_) => log::info!("app end."),
-        Err(e) => log::error!("{}", e)
-    }
 
-    Ok(())
+    service.run().await
 }
 
 fn init_logger() {
