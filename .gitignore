@@ -1,11 +1,5 @@
 env.list
 
-# CDK asset staging directory
-.cdk.staging
-cdk.out
-
-lambda/*/bin
-
 # Compiled class file
 *.class
 

@@ -50,7 +50,7 @@ impl WeatherBatchService {
 
     fn extract_yokohama_data(&self, weather_json: &Value) -> Result<Forecast> {
         let details = weather_json.get(0)
-            .with_context(|| serde_json::to_string_pretty(weather_json).unwrap_or_else(|_| weather_json.to_string()))?;
+            .with_context(|| serde_json::to_string_pretty(weather_json).unwrap_or_else(|e| e.to_string()))?;
         let time_series = details.get("timeSeries").and_then(|v| v.get(0)).context("timeSeries")?;
         let time_defines = time_series.get("timeDefines").context("timeDefines")?;
         let weathers = time_series.get("areas")
@@ -61,13 +61,12 @@ impl WeatherBatchService {
         let get_forecast = |i: usize| -> Result<DailyForecast> {
             let date_string = time_defines.get(i).and_then(Value::as_str).context(i.to_string())?;
             let time_define = DateTime::parse_from_rfc3339(date_string)?;
-            let content = weathers.get(i).and_then(Value::as_str).map(str::to_string).context(i.to_string())?;
-            Ok(DailyForecast { time_define, content })
+            let content = weathers.get(i).and_then(Value::as_str).context(i.to_string())?;
+            Ok(DailyForecast { time_define, content: content.to_string() })
         };
 
         let publishing_office = details.get("publishingOffice")
             .and_then(Value::as_str)
-            .map(str::to_string)
             .context("publishingOffice")?;
         let report_datetime_string = details.get("reportDatetime")
             .and_then(Value::as_str)
@@ -76,7 +75,7 @@ impl WeatherBatchService {
         let today_forecast = get_forecast(0)?;
         let tomorrow_forecast = get_forecast(1)?;
 
-        let forecast = Forecast { publishing_office, report_datetime, today_forecast, tomorrow_forecast };
+        let forecast = Forecast { publishing_office: publishing_office.to_string(), report_datetime, today_forecast, tomorrow_forecast };
         Ok(forecast)
     }
 

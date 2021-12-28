@@ -1,3 +1,5 @@
+use std::process;
+
 use anyhow::Result;
 use serde::Deserialize;
 
@@ -15,27 +17,25 @@ async fn main() {
     init_logger();
     log::info!("app start.");
 
-    match try_main().await {
-        Ok(_) => log::info!("app end."),
-        Err(e) => {
-            log::error!("{:?}", e);
-            std::process::exit(1);
-        }
+    if let Err(e) = run().await {
+        log::error!("{:?}", e);
+        process::exit(1);
+    } else {
+        log::info!("app end.");
     }
 }
 
-async fn try_main() -> Result<()> {
+async fn run() -> Result<()> {
     let env = envy::from_env::<Env>()?;
-    let service = WeatherBatchService::new(&env.typetalk_token);
-
+    let service = WeatherBatchService::new(env.typetalk_token);
     service.run().await
 }
 
 fn init_logger() {
+    use std::io::Write;
+
     env_logger::builder()
         .format(|buf, record| {
-            use std::io::Write;
-
             let ts = buf.timestamp_millis();
             let level = record.level();
             let level_style = buf.default_level_style(level);
